@@ -4,11 +4,6 @@ local act = wezterm.action
 -- This table will hold the configuration.
 local config = wezterm.config_builder()
 
--- PowerShell on Windows only
-if wezterm.target_triple:match('windows') then
-   config.default_prog = { "pwsh.exe", '-NoLogo' }
-end
-
 -------------------------------------------------------------
 -------------------------------------------------------------
 --                     General Config                      --
@@ -28,7 +23,7 @@ config.use_fancy_tab_bar = false
 config.tab_max_width = 30
 config.audible_bell = "Disabled"
 config.use_fancy_tab_bar = false
-config.window_decorations = "RESIZE" -- Affects title bar
+config.window_decorations = "RESIZE" -- Affects title bar, "NONE" will remove completely
 
 
 -- Newer version needed, currently Nightly only
@@ -60,7 +55,7 @@ config.color_schemes = {
 config.color_scheme = 'Gruvbox red'
 
 config.window_padding = {
-   left = 0,
+   left = 5,
    right = 0,
    top = 0,
    bottom = 0
@@ -102,9 +97,16 @@ wezterm.on(
    end
 )
 
+config.window_frame = {
+   inactive_titlebar_bg = "none",
+   active_titlebar_bg = "none",
+}
+
 config.colors = {
    tab_bar = {
-      background = '#f0544c',
+      -- background = '#f0544c',
+      -- background = '#282828',
+      background = 'rgba(40, 40, 40, 0.7)',
       new_tab = {
          bg_color = '#f0544c',
          fg_color = 'white',
