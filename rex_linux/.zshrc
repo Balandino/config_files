@@ -1,27 +1,44 @@
 # Created by newuser for 5.7.1
+#
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+##############################################
+# Install zinit plugin manager and source it #
+##############################################
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+
+if [ ! -d "$ZINIT_HOME" ]; then
+   mkdir -p "$(dirname $ZINIT_HOME)"
+   git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+
+source "${ZINIT_HOME}/zinit.zsh"
+
 
 ##################
-# Configurations #
+# Add in Plugins #
 ##################
-
-unsetopt PROMPT_SP
-setopt PROMPT_SUBST
-PROMPT='%{$(pwd|grep --color=always /)%${#PWD}G%} %(!.%F{red}.%F{cyan})%n%f@%F{green}%m%f%(!.%F{red}.)%F{red} $%f '
-
-setxkbmap -layout gb,ru
-setxkbmap -option 'grp:alt_shift_toggle'
-
-zle_highlight+=(paste:none)   # Remove highlighting when pasting into the shell
-
-set COLORFGBG="default;default" # Required for neomutt background
-export COLORFGBG                # Required for neomutt background
+zinit ice depth=1; zinit light romkatv/powerlevel10k
+zinit light zsh-users/zsh-syntax-highlighting
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+zinit light Aloxaf/fzf-tab
 
 
-#############
-#   ALIAS   #
-#############
+# Load completions
+autoload -U compinit && compinit
 
-alias ll="ls -l"
+
+###########
+# Aliases #
+###########
+alias ls='ls --color'
+alias ll='ls -l --color'
 alias la="ls -la"
 alias cls="clear"
 alias c="clear"
@@ -35,7 +52,37 @@ alias ap="nvim ~/.alacritty.toml"
 alias iprof="nvim ~/.config/i3/config"
 alias piconf="nvim ~/.config/picom/picom.conf"
 
+###########
+# Options #
+###########
+eval "$(fzf --zsh)" # Integrate fzf with zsh and 'Ctrl + R' to search
+# eval "$(/opt/homebrew/bin/brew shellenv)" # UNCOMMENT FOR MacOS ONLY, adds homebrew apps to path
 
+setxkbmap -layout gb,ru
+setxkbmap -option 'grp:alt_shift_toggle'
+
+zle_highlight+=(paste:none)   # Remove highlighting when pasting into the shell
+
+set COLORFGBG="default;default" # Required for neomutt background
+export COLORFGBG                # Required for neomutt background
+
+###########
+# History #
+###########
+
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+
+#############
+#  NordVpn  #
+#############
+# Nord Instructions
+#
 # Already Done?
 #:: In order to enable nordvpn you have to start the following service:
 #     sudo systemctl enable --now nordvpnd
@@ -43,11 +90,28 @@ alias piconf="nvim ~/.config/picom/picom.conf"
 #     sudo gpasswd -a USERNAME nordvpn
 #:: You then have to restart for the group to be created:
 #     reboot
-alias nord="sudo systemctl start nordvpnd.service && nordvpn connect US"
 
-#############
-#  KEY MAP  #
-#############
+
+# Worked for me
+# sudo systemctl start nordvpn.service
+# nordvpn login
+# nordvpn connect United_Kingdom
+
+###########
+# zstyle #
+###########
+# zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' # Case-insensitive matching on history
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}" # Colours on completions
+zstyle ':completion:*' menu no # Stop menu showing so fzf tab can takeover
+zstyle ':fzf-tab:copmplete:cd:*' fzf-preview 'ls --color $realpath'
+
+###########
+# Keymaps #
+###########
+
+# History searching
+bindkey '^p' history-search-backward
+bindkey '^n' history-search-forward
 
 # Sorts keys such as home and end
 bindkey "\e[3~" delete-char
@@ -139,9 +203,16 @@ vidlengths() {
    fi
 }
 
+
+#########################
+# Ending Configurations #
+#########################
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
 # Needed at end for zoxide
 eval "$(zoxide init zsh)"
-
 
 ##############
 # START XORG #
@@ -152,3 +223,4 @@ if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
    # exec startx # Without exec it is possible to close i3 and return to tty.  With exec closing i3 also triggers a restart
    startx
 fi
+
