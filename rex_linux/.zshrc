@@ -1,3 +1,4 @@
+#!/bin/zsh
 # Created by newuser for 5.7.1
 #
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
