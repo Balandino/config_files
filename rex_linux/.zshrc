@@ -138,6 +138,57 @@ nn(){
    cd ~/.config/nvim
 }
 
+nf(){
+   if [ "$#" -ne 1 ]; then
+      echo "The name of at least one file to search for must be enterd"
+   fi
+
+   # Get Array of find results
+   IFS=$'\n'
+   results=($(find ./ -name "*$1*"))
+   unset IFS
+   num_results=${#results[@]}
+
+   # Otherwise menu will be huge
+   if [ $num_results -gt 9 ]; then
+      echo "Too many results found, narrower search term required"
+      return
+   fi
+
+   # 1 Match - launch nvim
+   if [ $num_results -eq 1 ]; then
+      cd $(dirname "${results[1]}")
+      nvim $(basename "${results[1]}")
+      return
+   fi
+
+   # Multiple matches, outut menu for user choice
+   count=0
+   echo
+   for result in $results; do
+      echo "${count}) ${result}"
+      count=$(($count+1))
+   done
+
+   echo
+   echo -n "Choice: "
+   read choice
+
+   # Avoid invalid input
+   if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+      echo "Choice must be a number from 0 - 9"
+      return
+   fi
+
+   # Compensate for 1-based array in zsh
+   choice=$(($choice+1))
+
+   # Launch nvim
+   cd $(dirname "${results[$choice]}")
+   nvim $(basename "${results[$choice]}")
+}
+
+
 # Simplification for the install command for a simple package
 install() {
    sudo pacman -S "$@"
