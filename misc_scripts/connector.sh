@@ -1,7 +1,8 @@
 #!/bin/zsh
 
 if [ "$#" -ne 1 ]; then
-   echo "Enter the name of at least 1 instance"
+   echo "You must pass the name of the instance you want connect to"
+   return
 fi
 
 data=$(cat output.json)
