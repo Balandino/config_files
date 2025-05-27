@@ -118,6 +118,7 @@ bindkey '^n' history-search-forward
 bindkey "\e[3~" delete-char
 bindkey "^[[H" beginning-of-line
 bindkey "^[[F" end-of-line
+bindkey "^?" backward-delete-char
 
 # Sets zsh into vi mode.  Have to choose between this or emacs mode?
 bindkey -v
