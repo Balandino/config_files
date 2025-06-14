@@ -5,7 +5,7 @@
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 ##############################################
@@ -34,13 +34,13 @@ zinit light Aloxaf/fzf-tab
 # Load completions
 autoload -U compinit && compinit
 
-
 ###########
 # Aliases #
 ###########
 alias ls='ls --color'
 alias ll='ls -l --color'
 alias la="ls -la"
+alias dir="ls -l"
 alias cls="clear"
 alias c="clear"
 alias e="exit"
@@ -52,6 +52,7 @@ alias wp="nvim ~/.wezterm.lua"
 alias ap="nvim ~/.alacritty.toml"
 alias iprof="nvim ~/.config/i3/config"
 alias piconf="nvim ~/.config/picom/picom.conf"
+alias ff="firefox-developer-edition"
 
 ###########
 # Options #
@@ -66,6 +67,10 @@ zle_highlight+=(paste:none)   # Remove highlighting when pasting into the shell
 
 set COLORFGBG="default;default" # Required for neomutt background
 export COLORFGBG                # Required for neomutt background
+
+# Force browser to friefox developer edition
+# unset BROWSER
+# xdg-settings set default-web-browser firefox-developer-edition.desktop
 
 ###########
 # History #
@@ -94,7 +99,7 @@ setopt hist_ignore_space
 
 
 # Worked for me
-# sudo systemctl start nordvpn.service
+# sudo systemctl start nordvpnd
 # nordvpn login
 # nordvpn connect United_Kingdom
 
@@ -132,7 +137,7 @@ n(){
       cd ~/.config/nvim
       nvim init.lua
    else
-      nvim "$#"
+      nvim "$1"
    fi
 }
 
@@ -142,7 +147,7 @@ nn(){
 
 nf(){
    if [ "$#" -ne 1 ]; then
-      echo "The name of at least one file to search for must be enterd"
+      echo "The name of at least one file to search for must be entered"
    fi
 
    # Get Array of find results
@@ -154,6 +159,12 @@ nf(){
    # Otherwise menu will be huge
    if [ $num_results -gt 9 ]; then
       echo "Too many results found, narrower search term required"
+      return
+   fi
+
+   # Otherwise menu will be huge
+   if [ $num_results -eq 0 ]; then
+      echo "No results"
       return
    fi
 
@@ -191,9 +202,40 @@ nf(){
 }
 
 
+venv(){
+   if [[ -z "$1" ]]; then
+      echo "First argument must be the name of the venv"
+      return
+   fi
+
+   if [ -d "$1" ]; then
+      echo "$1 Already exists"
+      return
+   fi
+
+   python -m venv "$1"
+   cd "$1"
+   source ./bin/activate
+   pip install --upgrade pip
+   pip install mypy vulture flake8 pylint
+   pylint --generate-rcfile > ./.pylintrc
+   cd ..
+   deactivate
+
+   echo
+   echo "Virtual Environment Created.  Remember:"
+   echo "source ./bin/activate   => To Activate"
+   echo "pip install ....        => To Install"
+   echo
+}
+
 # Simplification for the install command for a simple package
 install() {
-   sudo pacman -S "$@"
+   sudo pacman -S "$1"
+}
+
+uninstall() {
+   sudo pacman -Rs "$1"
 }
 
 upgrade(){
@@ -211,12 +253,15 @@ windows(){
 }
 
 aur-remove(){
-   sudo pacman -Rs "$@"
-   repo-remove /home/custompkgs/custom.db.tar.gz "$@"
+   repo-remove /home/custompkgs/custom.db.tar.gz "$1"
+}
+
+aur-rebuild(){
+   aur sync -cf "$1"
 }
 
 # A new version of aurutils seems to require a separate conf file
-# as opposed to using the current one.  Copying the current one
+# as oppoosed to using the current one.  Copying the current one
 # to this location resolves the problem
 aur-copy-conf(){
    sudo /etc/pacman.conf /etc/aurutils/pacman-x86_64.conf
@@ -256,6 +301,124 @@ vidlengths() {
    fi
 }
 
+yt-mp3(){
+   yt-dlp -x --audio-format mp3 $1 -o "%(title)s.%(ext)s" -N 16
+}
+
+yt(){
+   yt-dlp $@ -o "%(title)s.%(ext)s" -N 16
+}
+
+yt-subs(){
+   yt-dlp --print title --print subtitles_table --print webpage_url --print duration_string $@
+}
+
+tamara(){
+   links=$(yt-dlp --flat-playlist --print "%(id)s" https://www.youtube.com/@TamaraEidelmanHistory/videos)
+   links=("${(f)links}")
+   num_links=${#links[@]}
+
+   en_count=0
+   count=0
+
+   for link in "${links[@]}"; do
+      ru_found=0
+      en_found=0
+      output=""
+
+      sub_data=$(yt-dlp --encoding utf-8 --print title --print subtitles_table --print webpage_url --print duration_string "https://www.youtube.com/watch?v=${link}")
+
+      if [ $(echo $sub_data | awk 'length($1) <= 5 {print $1}' | grep -c "en") -eq 1 ]; then
+         en_found=1
+      fi
+
+      if [ $(echo $sub_data | awk 'length($1) <= 5 {print $1}' | grep -c "ru") -eq 1 ]; then
+         ru_found=1
+      fi
+
+      if [ $ru_found -eq 1 ] && [ $en_found -eq 1 ]; then
+         echo $sub_data >> Tamara.txt
+         let en_count++
+      fi
+
+      let count++
+      echo "Lines [${count}/${num_links}] (En_Subs: ${en_count})"
+   done
+}
+
+yaroslava(){
+   # Short link (Shows) - https://www.youtube.com/watch?v=R6TOyFZmXWU
+
+   # $1 = YouTube Url
+   # $2 = Name to set files to
+
+   if test -n "$(find ./ -mindepth 1 -maxdepth 1)" ; then
+      echo "This function must be run in an empty folder"
+      return
+   fi
+
+   if [[ -z "$1" ]]; then
+      echo "First argument must be URL of YouTube video"
+      return
+   fi
+
+   yt-dlp "$1" --sub-lang en,ru --write-sub --convert-subs srt -o "%(title)s.%(ext)s" -N 16 --merge-output-format mkv
+
+   Get errors on * wildcard if not exists, so need to manage
+   if [ $(ls -l | grep "en-US.srt" | wc -l) -gt 0 ]; then
+      mv *.en-US.srt "$2".en.srt 2>/dev/null;
+   fi
+
+   if [ $(ls -l | grep "en.srt" | wc -l) -lt 1 ]; then
+      echo "No English subtitles detected"
+      return
+   fi
+
+   if [ $(ls -l | grep "ru.srt" | wc -l) -lt 1 ]; then
+      echo "No Russian subtitles detected"
+      return
+   fi
+
+   mv *.mkv "$2".mkv
+   mv *.en.srt "$2".en.srt
+   mv *.ru.srt "$2".ru.srt
+
+   files_dir=$(pwd)
+
+   input_path="/home/mkg/mega/Coding/Workpad/Linux/Python/ru_subs/Code/Subs/Subs_to_Process"
+   output_path="/home/mkg/mega/Coding/Workpad/Linux/Python/ru_subs/Code/Subs/Output"
+   code_path="/home/mkg/mega/Coding/Workpad/Linux/Python/ru_subs/Code"
+
+   if [[ ! -d "$input_path" ]]; then
+      echo "Input location does not exist:"
+      echo "$input_path"
+      return
+   fi
+
+   if [[ ! -d "$output_path" ]]; then
+      echo "Output location does not exist:"
+      echo "$output_path"
+      return
+   fi
+
+   cp "$2".ru.srt "$input_path"
+   cp "$2".ru.srt "$2".original.ru.srt
+   cd ~/mega/Coding/Workpad/Linux/Python/ru_subs
+   source bin/activate
+   cd Code
+   python "$code_path/runner_srt_default.py"
+   deactivate
+   mv "$output_path"/"$2".ru.srt "$files_dir"
+   rm "$input_path"/"$2".ru.srt
+   cd "$files_dir"
+
+   ffmpeg -i "$2.mkv" -c:v libx264 -preset slow -crf 21 -c:a aac -b:a 160k -vf format=yuv420p -movflags +faststart "$2.mp4"
+   ffmpeg -i "$2.mp4" -c:v libx264 -crf 21 -c:a copy -vf "subtitles="$2".ru.srt:force_style='Alignment=2,FontNanme=Tahoma,Bold=1'" "$2 [BURN RU].mp4"
+   ffmpeg -i "$2 [BURN RU].mp4" -c:v libx264 -crf 21 -c:a copy -vf "subtitles="$2".en.srt:force_style='Alignment=6,FontName=Tahoma,Bold=1,FontSize=12'" "$2 [BURN IN].mp4"
+}
+
+
+
 
 #########################
 # Ending Configurations #
@@ -276,4 +439,3 @@ if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
    # exec startx # Without exec it is possible to close i3 and return to tty.  With exec closing i3 also triggers a restart
    startx
 fi
-
